@@ -10,7 +10,7 @@ import Todolist from './pages/todolis/Todolist';
 export default function App() {
   return (
     <Router>
-      <Route path="/" component={() => <Navigate href="/dashboard" />} />
+      <Route path="/" component={() => <Navigate href="/login" />} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/dashboard" component={Dashboard} />
