@@ -13,7 +13,7 @@ const Dashboard = () => {
             <div class="mb-8">
               <h1 class="text-3xl font-semibold text-gray-800">Dashoboard</h1>
               <p class="text-gray-600 mt-2">
-                Here is the information about your activity and mental condition. How to relieve stress? How to be patient? You will find everything here!
+                ini dashboard view cuy
               </p>
             </div>
           </div>

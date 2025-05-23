@@ -6,14 +6,12 @@ const RegisterForm = () => {
   const [password, setPassword] = createSignal('');
   const [confirmPassword, setConfirmPassword] = createSignal('');
   const [error, setError] = createSignal('');
-  const [success, setSuccess] = createSignal('');
   const [showPassword, setShowPassword] = createSignal(false);
   const [showConfirmPassword, setShowConfirmPassword] = createSignal(false);
 
-  const handleRegister = (e: Event) => {
+  const handleRegister = async (e: Event) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
 
     if (!username() || !email() || !password() || !confirmPassword()) {
       setError('Semua field harus diisi.');
@@ -30,8 +28,37 @@ const RegisterForm = () => {
       return;
     }
 
-    setSuccess(`Registrasi berhasil!\nSelamat datang, ${username()}`);
+    try {
+      const response = await fetch('http://localhost:8080/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username(),
+          email: email(),
+          password: password(),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.message || 'Registrasi gagal.');
+        return;
+      }
+
+      const data = await response.json();
+      alert(`Registrasi berhasil! Selamat datang, ${data.username || username()}`);
+
+      // Tunggu sebentar agar notifikasi terlihat, lalu redirect
+      window.location.href = '/dashboard';
+
+    } catch (err) {
+      console.error(err);
+      setError('Terjadi kesalahan saat menghubungi server.');
+    }
   };
+
 
   return (
     <>
@@ -118,7 +145,6 @@ const RegisterForm = () => {
         </div>
 
         {error() && <p class="text-red-500 text-sm">{error()}</p>}
-        {success() && <p class="text-green-500 text-sm">{success()}</p>}
 
         <button
           type="submit"

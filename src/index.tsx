@@ -1,7 +1,9 @@
-/* @refresh reload */
-import { render } from 'solid-js/web'
-import App from './App'
+import { render } from "solid-js/web";
+import { HopeProvider } from "@hope-ui/solid";
+import App from "./App";
 
-const root = document.getElementById('root')
-
-render(() => <App />, root!)
+render(() => (
+  <HopeProvider resetCSS={false}>
+    <App />
+  </HopeProvider>
+), document.getElementById("root")!);

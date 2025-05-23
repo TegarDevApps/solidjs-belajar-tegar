@@ -1,6 +1,7 @@
 // components/LoginForm.tsx
 import { createSignal, Show } from 'solid-js';
-import { A } from '@solidjs/router'; 
+import { A, useNavigate } from '@solidjs/router';
+import { setAuthenticated } from '../utils/auth';
 
 interface LoginFormProps {
   isLogin: boolean;
@@ -12,19 +13,79 @@ const LoginForm = (props: LoginFormProps) => {
   const [password, setPassword] = createSignal('');
   const [username, setUsername] = createSignal('');
   const [error, setError] = createSignal('');
+  const [loading, setLoading] = createSignal(false);
   const [showPassword, setShowPassword] = createSignal(false);
   const [rememberMe, setRememberMe] = createSignal(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: Event) => {
+  const handleSubmit = async (e: Event) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
+    // Validation
     if (!email() || !password() || (!props.isLogin && !username())) {
       setError('Semua field harus diisi!');
+      setLoading(false);
       return;
     }
 
-    alert(`${props.isLogin ? 'Login' : 'Register'} berhasil!\nEmail: ${email()}`);
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email())) {
+      setError('Format email tidak valid!');
+      setLoading(false);
+      return;
+    }
+
+    // Password validation for registration
+    if (!props.isLogin && password().length < 6) {
+      setError('Password minimal 6 karakter!');
+      setLoading(false);
+      return;
+    }
+
+    const endpoint = props.isLogin ? '/api/login' : '/api/register';
+    const payload = props.isLogin 
+      ? { email: email(), password: password() }
+      : { username: username(), email: email(), password: password() };
+
+    try {
+      const response = await fetch(`http://localhost:8080${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || `${props.isLogin ? 'Login' : 'Registrasi'} gagal`);
+      }
+
+      // Set authentication state
+      const user = {
+        id: data.user.id,
+        username: data.user.username,
+        email: data.user.email
+      };
+      
+      setAuthenticated(user, data.token);
+
+      // Show success message
+      const action = props.isLogin ? 'Login' : 'Registrasi';
+      alert(`${action} berhasil! Selamat datang, ${user.username}`);
+
+      // Navigate to dashboard
+      navigate('/dashboard');
+
+    } catch (err: any) {
+      setError(err.message || `Terjadi kesalahan saat ${props.isLogin ? 'login' : 'registrasi'}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -48,6 +109,7 @@ const LoginForm = (props: LoginFormProps) => {
               value={username()}
               onInput={(e) => setUsername(e.currentTarget.value)}
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={loading()}
             />
           </div>
         </Show>
@@ -60,6 +122,7 @@ const LoginForm = (props: LoginFormProps) => {
             value={email()}
             onInput={(e) => setEmail(e.currentTarget.value)}
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={loading()}
           />
         </div>
         
@@ -68,21 +131,23 @@ const LoginForm = (props: LoginFormProps) => {
           <div class="relative">
             <input
               type={showPassword() ? "text" : "password"}
-              placeholder="Enter Password"
+              placeholder={props.isLogin ? "Enter Password" : "Create a password"}
               value={password()}
               onInput={(e) => setPassword(e.currentTarget.value)}
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+              disabled={loading()}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword())}
               class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500"
+              disabled={loading()}
             >
-              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {showPassword() ? (
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 ) : (
-                  <path stroke-Linecap="round" stroke-Linejoin="round" stroke-Width={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                 )}
               </svg>
             </button>
@@ -98,6 +163,7 @@ const LoginForm = (props: LoginFormProps) => {
                 checked={rememberMe()}
                 onChange={(e) => setRememberMe(e.currentTarget.checked)}
                 class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                disabled={loading()}
               />
               <label for="remember-me" class="ml-2 block text-sm text-gray-700">
                 Remember me
@@ -111,13 +177,32 @@ const LoginForm = (props: LoginFormProps) => {
           </div>
         </Show>
 
-        {error() && <p class="text-red-500 text-sm">{error()}</p>}
+        {error() && (
+          <div class="bg-red-50 border border-red-200 rounded-md p-3">
+            <p class="text-red-600 text-sm">{error()}</p>
+          </div>
+        )}
 
         <button
           type="submit"
-          class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          disabled={loading()}
+          class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white 
+            ${loading() 
+              ? 'bg-gray-400 cursor-not-allowed' 
+              : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+            }`}
         >
-          Sign in
+          {loading() ? (
+            <div class="flex items-center">
+              <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              {props.isLogin ? 'Signing in...' : 'Creating account...'}
+            </div>
+          ) : (
+            props.isLogin ? 'Sign in' : 'Create account'
+          )}
         </button>
         
         <Show when={props.isLogin}>
@@ -129,15 +214,14 @@ const LoginForm = (props: LoginFormProps) => {
           
           <button
             type="button"
-            class="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            disabled={loading()}
+            class="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
           >
-            <svg class="h-5 w-5 mr-2" viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
-              <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
-                <path fill="#4285F4" d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.284 53.749 C -8.574 55.229 -9.424 56.479 -10.684 57.329 L -10.684 60.329 L -6.824 60.329 C -4.564 58.239 -3.264 55.159 -3.264 51.509 Z" />
-                <path fill="#34A853" d="M -14.754 63.239 C -11.514 63.239 -8.804 62.159 -6.824 60.329 L -10.684 57.329 C -11.764 58.049 -13.134 58.489 -14.754 58.489 C -17.884 58.489 -20.534 56.379 -21.484 53.529 L -25.464 53.529 L -25.464 56.619 C -23.494 60.539 -19.444 63.239 -14.754 63.239 Z" />
-                <path fill="#FBBC05" d="M -21.484 53.529 C -21.734 52.809 -21.864 52.039 -21.864 51.239 C -21.864 50.439 -21.724 49.669 -21.484 48.949 L -21.484 45.859 L -25.464 45.859 C -26.284 47.479 -26.754 49.299 -26.754 51.239 C -26.754 53.179 -26.284 54.999 -25.464 56.619 L -21.484 53.529 Z" />
-                <path fill="#EA4335" d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z" />
-              </g>
+            <svg class="h-5 w-5 mr-2" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
             Sign in with Google
           </button>

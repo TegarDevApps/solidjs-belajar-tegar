@@ -9,9 +9,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@amcharts/amcharts5": "^5.12.2",
+    "@hope-ui/solid": "^0.6.7",
     "@solidjs/router": "^0.15.3",
+    "@stitches/core": "^1.2.8",
+    "@tabler/icons": "^3.33.0",
+    "@tabler/icons-solidjs": "^2.47.0",
     "@tailwindcss/vite": "^4.1.7",
-    "solid-js": "^1.9.5"
+    "ag-grid-community": "^33.3.0",
+    "ag-grid-solid": "^31.1.1",
+    "flowbite": "^3.1.2",
+    "solid-js": "^1.9.5",
+    "solid-transition-group": "^0.0.10"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.7",

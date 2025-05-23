@@ -1,204 +1,389 @@
-import { createSignal } from "solid-js";
+import { createSignal, createResource, onMount } from "solid-js";
+import { For, Show, Suspense } from "solid-js";
+import { 
+  Box, 
+  Button, 
+  Input, 
+  InputGroup,
+  InputLeftElement,
+  Text,
+  Heading,
+  Badge,
+  Flex,
+  Grid,
+  Container,
+  VStack,
+  HStack,
+  Skeleton,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription
+} from "@hope-ui/solid";
+import { IconSearch, IconFilter, IconSettings, IconChevronLeft, IconChevronRight } from "@tabler/icons-solidjs";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import Footer from "../components/Footer";
-import ArticleCard from "../components/ArticleCard";
-import CategoryCard from "../components/CategoryCard";
-import Pagination from "../components/Pagination";
+import PostChart from "../components/PostChart";
+
+interface Post {
+  userId: number;
+  id: number;
+  title: string;
+  body: string;
+}
+
+interface User {
+  id: number;
+  name: string;
+  username: string;
+  email: string;
+  address: {
+    street: string;
+    suite: string;
+    city: string;
+    zipcode: string;
+    geo: {
+      lat: string;
+      lng: string;
+    };
+  };
+  phone: string;
+  website: string;
+  company: {
+    name: string;
+    catchPhrase: string;
+    bs: string;
+  };
+}
+
+interface PostWithUser extends Post {
+  user?: User;
+  readTime: string;
+  postedOn: string;
+}
 
 const Blog = () => {
-  const [articles, setArticles] = createSignal([
-    {
-      id: 1,
-      title: "5 Simple Keys to Helping Your Partner Feel Heard",
-      category: "Relationships",
-      readTime: "20 mins read",
-      author: {
-        name: "Dr. Ben Affleck",
-        avatar: "/assets/images/dummy.jpg",
-        postedOn: "Apr 23, 2025",
-      },
-      excerpt: "Your relationship partner needs to feel understood. Being a better listener is the secret to deeper connection.",
-      image: "/assets/images/dummy.jpg",
-    },
-    {
-      id: 2,
-      title: "Why We Feel Post-Pandemic Burnout and Exhaustion",
-      category: "Burnout",
-      readTime: "15 mins read",
-      author: {
-        name: "Dr. Nick Wildman",
-        avatar: "/assets/images/dummy.jpg",
-        postedOn: "Apr 21, 2025",
-      },
-      excerpt: "Do less. Take a walk. Look up at trees. Soak in the silence. The energy bandwidth the body and mind need to recover.",
-      image: "/assets/images/dummy.jpg",
-    },
-    {
-      id: 3,
-      title: "Is Emotion Regulation the Key to Addiction Prevention?",
-      category: "Emotions",
-      readTime: "18 mins read",
-      author: {
-        name: "Dr. Sarah Legend",
-        avatar: "/assets/images/dummy.jpg",
-        postedOn: "Apr 20, 2025",
-      },
-      excerpt: "Your relationship partner needs to feel understood. Being a better listener is the secret to deeper connection.",
-      image: "/assets/images/dummy.jpg",
-    },
-    {
-      id: 4,
-      title: "When You're Exhausted, Try These 3 Uplifting Thoughts",
-      category: "Stress",
-      readTime: "12 mins read",
-      author: {
-        name: "Dr. Evan Peters",
-        avatar: "/assets/images/dummy.jpg",
-        postedOn: "Apr 19, 2025",
-      },
-      excerpt: "How to change your perspective on yourself and your problems.",
-      image: "/assets/images/dummy.jpg",
-    },
-    {
-      id: 5,
-      title: "Edible Flowers That Are Good for the Body and Brain",
-      category: "Health",
-      readTime: "10 mins read",
-      author: {
-        name: "Dr. Sam Cooper",
-        avatar: "/assets/images/dummy.jpg",
-        postedOn: "Apr 18, 2025",
-      },
-      excerpt: "Edible flowers taste great, look beautiful on your plate, and are packed with nutrients.",
-      image: "/assets/images/dummy.jpg",
-    },
-    {
-      id: 6,
-      title: "Exercise More by Making It Easier—Yes, Easier",
-      category: "Health",
-      readTime: "15 mins read",
-      author: {
-        name: "Dr. Kelly Adams",
-        avatar: "/assets/images/dummy.jpg",
-        postedOn: "Apr 17, 2025",
-      },
-      excerpt: "How you start to create a program of regular exercise with no excuses? Maybe you are setting unrealistic goals.",
-      image: "/assets/images/dummy.jpg",
-    },
-  ]);
+  const [currentPage, setCurrentPage] = createSignal(1);
+  const [searchTerm, setSearchTerm] = createSignal("");
+  const [sortBy, setSortBy] = createSignal("latest");
+  const postsPerPage = 6;
 
-  const [categories, setCategories] = createSignal([
-    {
-      id: 1,
-      name: "Sleep",
-      count: 25,
-      image: "/assets/images/dummy.jpg",
-    },
-    {
-      id: 2,
-      name: "Stress",
-      count: 19,
-      image: "/assets/images/dummy.jpg",
-    },
-    {
-      id: 3,
-      name: "Mindfulness",
-      count: 28,
-      image: "/assets/images/dummy.jpg",
-    },
-  ]);
+  const fetchPosts = async (): Promise<Post[]> => {
+    try {
+      const response = await fetch('https://jsonplaceholder.typicode.com/posts');
+      if (!response.ok) throw new Error('Failed to fetch posts');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      throw error;
+    }
+  };
 
-  const [currentPage, setCurrentPage] = createSignal(2);
-  const totalPages = 30;
+  const fetchUsers = async (): Promise<User[]> => {
+    try {
+      const response = await fetch('https://jsonplaceholder.typicode.com/users');
+      if (!response.ok) throw new Error('Failed to fetch users');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      throw error;
+    }
+  };
+
+  const [posts] = createResource(fetchPosts);
+  const [users] = createResource(fetchUsers);
+
+  const generateReadTime = () => {
+    const times = ['3 min read', '5 min read', '8 min read', '10 min read', '12 min read', '15 min read'];
+    return times[Math.floor(Math.random() * times.length)];
+  };
+
+  const generatePostedDate = () => {
+    const dates = ['Dec 15, 2024', 'Dec 10, 2024', 'Dec 5, 2024', 'Nov 28, 2024', 'Nov 20, 2024', 'Nov 15, 2024'];
+    return dates[Math.floor(Math.random() * dates.length)];
+  };
+
+  const enrichedPosts = () => {
+    const postsData = posts();
+    const usersData = users();
+    if (!postsData || !usersData) return [];
+
+    return postsData.map((post: Post): PostWithUser => {
+      const user = usersData.find((u: User) => u.id === post.userId);
+      return {
+        ...post,
+        user,
+        readTime: generateReadTime(),
+        postedOn: generatePostedDate()
+      };
+    });
+  };
+
+  const filteredPosts = () => {
+    let filtered = enrichedPosts();
+    if (searchTerm()) {
+      filtered = filtered.filter(post => 
+        post.title.toLowerCase().includes(searchTerm().toLowerCase()) ||
+        post.body.toLowerCase().includes(searchTerm().toLowerCase())
+      );
+    }
+    if (sortBy() === 'title') {
+      filtered.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (sortBy() === 'author') {
+      filtered.sort((a, b) => (a.user?.name || '').localeCompare(b.user?.name || ''));
+    }
+    return filtered;
+  };
+
+  const paginatedPosts = () => {
+    const filtered = filteredPosts();
+    const startIndex = (currentPage() - 1) * postsPerPage;
+    return filtered.slice(startIndex, startIndex + postsPerPage);
+  };
+
+  const totalPages = () => Math.ceil(filteredPosts().length / postsPerPage);
+
+  const userPostStats = () => {
+    const postsData = posts();
+    const usersData = users();
+    if (!postsData || !usersData) return [];
+
+    const stats = usersData.map((user: User) => ({
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      postCount: postsData.filter((post: Post) => post.userId === user.id).length
+    }));
+
+    return stats.sort((a, b) => b.postCount - a.postCount);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handleSortChange = () => {
+    setSortBy(sortBy() === 'latest' ? 'title' : sortBy() === 'title' ? 'author' : 'latest');
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const getPaginationRange = () => {
+    const total = totalPages();
+    const current = currentPage();
+    const range = [];
+    
+    let start = Math.max(1, current - 2);
+    let end = Math.min(total, start + 4);
+    
+    if (end - start < 4) {
+      start = Math.max(1, end - 4);
+    }
+    
+    for (let i = start; i <= end; i++) {
+      range.push(i);
+    }
+    
+    return range;
+  };
 
   return (
-    <div class="flex h-screen bg-gray-50">
+    <Box class="flex h-screen bg-gray-50">
       <Sidebar />
-      <div class="flex-1 flex flex-col overflow-hidden">
+      <Box class="flex-1 flex flex-col overflow-hidden">
         <Header />
-        <main class="flex-1 overflow-y-auto p-5">
-          <div class="max-w-7xl mx-auto">
-            <div class="mb-8">
-              <h1 class="text-3xl font-semibold text-gray-800">Blog</h1>
-              <p class="text-gray-600 mt-2">
-                Here is the information about your activity and mental condition. How to relieve stress? How to be patient? You will find everything here!
-              </p>
-            </div>
+        <Box as="main" class="flex-1 overflow-y-auto p-5">
+          <Container maxW="7xl">
+            <VStack spacing="$6" align="stretch">
+              <Box mb="$8">
+                <Heading size="2xl" color="$gray800" mb="$2">
+                  Blog Posts
+                </Heading>
+                <Text color="$gray600" fontSize="$lg">
+                  Discover amazing articles from our community. Find insights, tutorials, and stories from various authors.
+                </Text>
+              </Box>
 
-            {/* Top Categories */}
-            <div class="mb-8">
-              <div class="flex justify-between items-center mb-4">
-                <div class="flex items-center">
-                  <h2 class="text-xl font-semibold text-gray-800">Top categories</h2>
-                  <span class="ml-2 bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-xs">10</span>
-                </div>
-                <button class="text-blue-500 flex items-center text-sm">
-                  See all
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {categories().map((category) => (
-                  <CategoryCard
-                    name={category.name}
-                    count={category.count}
-                    image={category.image}
-                  />
-                ))}
-              </div>
-            </div>
+              <Box 
+                bg="$white" 
+                p="$4" 
+                borderRadius="$md" 
+                shadow="$sm"
+                mb="$6"
+              >
+                <Flex gap="$4" align="center" wrap="wrap">
+                  <Box flex="1" minW="250px">
+                    <InputGroup>
+                      <InputLeftElement pointerEvents="none">
+                        <IconSearch size="16" />
+                      </InputLeftElement>
+                      <Input
+                        placeholder="Search posts..."
+                        value={searchTerm()}
+                        onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) => 
+                          handleSearchChange(e.currentTarget.value)
+                        }
+                      />
+                    </InputGroup>
+                  </Box>
+                  <Button
+                    variant="outline"
+                    leftIcon={<IconFilter size="16" />}
+                    onClick={handleSortChange}
+                  >
+                    Sort by: {sortBy() === 'latest' ? 'Latest' : sortBy() === 'title' ? 'Title' : 'Author'}
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <IconSettings size="16" />
+                  </Button>
+                </Flex>
+              </Box>
 
-            {/* Articles */}
-            <div class="mb-8">
-              <div class="flex justify-between items-center mb-4">
-                <div class="flex items-center">
-                  <h2 class="text-xl font-semibold text-gray-800">Articles</h2>
-                  <span class="ml-2 bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-xs">286</span>
-                </div>
-                <div class="flex items-center space-x-2">
-                  <div class="relative">
-                    <button class="flex items-center text-sm text-gray-600 border border-gray-300 rounded-md px-3 py-1.5">
-                      Sort by
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                  </div>
-                  <button class="flex items-center justify-center h-8 w-8 bg-gray-100 rounded-md">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {articles().map((article) => (
-                  <ArticleCard
-                    title={article.title}
-                    category={article.category}
-                    readTime={article.readTime}
-                    author={article.author}
-                    excerpt={article.excerpt}
-                    image={article.image}
-                  />
-                ))}
-              </div>
-            </div>
+              <Flex justify="space-between" align="center">
+                <HStack>
+                  <Heading size="xl" color="$gray800">
+                    Articles
+                  </Heading>
+                  <Badge colorScheme="gray" variant="subtle">
+                    {filteredPosts().length}
+                  </Badge>
+                </HStack>
+              </Flex>
 
-            {/* Pagination */}
-            <Pagination 
-              currentPage={currentPage()} 
-              totalPages={totalPages} 
-              onPageChange={setCurrentPage} 
-            />
-          </div>
-        </main>
+              <Suspense 
+                fallback={
+                  <Grid templateColumns="repeat(auto-fit, minmax(300px, 1fr))" gap="$6">
+                    <For each={Array(6).fill(0)}>
+                      {() => (
+                        <Box
+                          bg="$white"
+                          p="$4"
+                          borderRadius="$md"
+                          shadow="$sm"
+                          _hover={{ transform: "translateY(-2px)", shadow: "$lg" }}
+                          transition="all 0.2s"
+                        >
+                          <VStack align="stretch" spacing="$4">
+                            <Skeleton height="20px" />
+                            <Skeleton height="60px" />
+                            <Skeleton height="16px" />
+                          </VStack>
+                        </Box>
+                      )}
+                    </For>
+                  </Grid>
+                }
+              >
+                <Show 
+                  when={!posts.error && !users.error}
+                  fallback={
+                    <Alert status="danger">
+                      <AlertIcon />
+                      <AlertTitle>Error!</AlertTitle>
+                      <AlertDescription>
+                        Failed to load posts. Please try again later.
+                      </AlertDescription>
+                    </Alert>
+                  }
+                >
+                  <Grid templateColumns="repeat(auto-fit, minmax(350px, 1fr))" gap="$6">
+                    <For each={paginatedPosts()}>
+                      {(post) => (
+                        <Box
+                          bg="$white"
+                          p="$4"
+                          borderRadius="$md"
+                          shadow="$sm"
+                          _hover={{ transform: "translateY(-2px)", shadow: "$lg" }}
+                          transition="all 0.2s"
+                        >
+                          <VStack align="stretch" spacing="$3">
+                            <Badge colorScheme="blue" alignSelf="flex-start" size="sm">
+                              User {post.userId}
+                            </Badge>
+                            <Heading size="md" noOfLines={2}>
+                              {post.title}
+                            </Heading>
+                            <Text noOfLines={4} color="$gray700" fontSize="$sm">
+                              {post.body}
+                            </Text>
+                            <Text fontSize="$xs" color="$gray500">
+                              By <strong>{post.user?.name || "Unknown"}</strong> &bull; {post.postedOn} &bull; {post.readTime}
+                            </Text>
+                          </VStack>
+                        </Box>
+                      )}
+                    </For>
+                  </Grid>
+                </Show>
+              </Suspense>
+
+              <Show when={totalPages() > 1}>
+                <Box
+                  bg="$white"
+                  p="$4"
+                  borderRadius="$md"
+                  shadow="$sm"
+                >
+                  <Flex justify="center" align="center" gap="$2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage() === 1}
+                      onClick={() => handlePageChange(currentPage() - 1)}
+                      leftIcon={<IconChevronLeft size="16" />}
+                    >
+                      Previous
+                    </Button>
+                    
+                    <HStack spacing="$1">
+                      <For each={getPaginationRange()}>
+                        {(page) => (
+                          <Button
+                            variant={currentPage() === page ? "solid" : "ghost"}
+                            colorScheme={currentPage() === page ? "blue" : "gray"}
+                            size="sm"
+                            onClick={() => handlePageChange(page)}
+                          >
+                            {page}
+                          </Button>
+                        )}
+                      </For>
+                    </HStack>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage() === totalPages()}
+                      onClick={() => handlePageChange(currentPage() + 1)}
+                      rightIcon={<IconChevronRight size="16" />}
+                    >
+                      Next
+                    </Button>
+                  </Flex>
+                  
+                  <Text textAlign="center" fontSize="$sm" color="$gray600" mt="$2">
+                    Page {currentPage()} of {totalPages()} ({filteredPosts().length} total posts)
+                  </Text>
+                </Box>
+              </Show>
+
+              <Suspense fallback={<Skeleton height="300px" />}>
+                <Show when={posts() && users()}>
+                  <PostChart data={userPostStats()} />
+                </Show>
+              </Suspense>
+            </VStack>
+          </Container>
+        </Box>
         <Footer />
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 };
 

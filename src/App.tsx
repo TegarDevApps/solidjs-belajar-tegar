@@ -1,22 +1,85 @@
 // App.tsx
 import { Router, Route, Navigate } from '@solidjs/router';
+import { onMount, createSignal, Show } from 'solid-js';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Blog from './pages/Blog';
 import About from './pages/About';
 import Todolist from './pages/todolis/Todolist';
+import ProtectedRoute from './components/ProtectedRoute';
+import { GuestRoute } from './components/GuestRoute';
+
+
+import { isAuthenticated, initializeAuth } from './utils/auth';
 
 export default function App() {
+  const [loading, setLoading] = createSignal(true);
+  const [authInitialized, setAuthInitialized] = createSignal(false);
+
+  onMount(async () => {
+    try {
+      // Initialize auth state on app start
+      await initializeAuth();
+      setAuthInitialized(true);
+    } catch (error) {
+      console.error('Failed to initialize auth:', error);
+      setAuthInitialized(true); // Still set to true to show the app
+    } finally {
+      setLoading(false);
+    }
+  });
+
   return (
-    <Router>
-      <Route path="/" component={() => <Navigate href="/login" />} />
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/blog" component={Blog} />
-      <Route path="/about" component={About} />
-      <Route path="/todolist" component={Todolist} />
-    </Router>
+    <Show 
+      when={!loading() && authInitialized()} 
+      fallback={
+        <div class="min-h-screen flex items-center justify-center bg-gray-50">
+          <div class="text-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
+            <p class="mt-6 text-lg text-gray-600">Initializing application...</p>
+            <p class="mt-2 text-sm text-gray-500">Please wait a moment</p>
+          </div>
+        </div>  
+      }
+    >
+      
+      <Router>
+        {/* Root redirect */}
+        <Route path="/" component={() =>
+          isAuthenticated() ? <Navigate href="/dashboard" /> : <Navigate href="/login" />
+        } />
+
+        {/* Guest routes - only accessible when not authenticated */}
+        <Route path="/login" component={() => <GuestRoute component={Login} />} />
+        <Route path="/register" component={() => <GuestRoute component={Register} />} />
+
+        {/* Protected routes - only accessible when authenticated */}
+        <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
+        <Route path="/todolist" component={() => <ProtectedRoute component={Todolist} />} />
+
+        {/* Public routes - accessible to everyone */}
+        <Route path="/blog" component={Blog} />
+        <Route path="/about" component={About} />
+
+        {/* 404 Fallback */}
+        <Route path="*" component={() => (
+          <div class="min-h-screen flex items-center justify-center bg-gray-50">
+            <div class="text-center">
+              <h1 class="text-6xl font-bold text-gray-300">404</h1>
+              <p class="text-xl text-gray-600 mt-4">Page not found</p>
+              <div class="mt-6">
+                <a 
+                  href={isAuthenticated() ? "/dashboard" : "/login"} 
+                  class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  {isAuthenticated() ? "Go to Dashboard" : "Go to Login"}
+                </a>
+              </div>
+            </div>
+          </div>
+        )} />
+      </Router>
+    </Show>
   );
 }
