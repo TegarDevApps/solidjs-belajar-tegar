@@ -1,7 +1,5 @@
 // utils/auth.ts
 import { createSignal } from 'solid-js';
-
-// Types
 export interface User {
   id: number;
   username: string;
@@ -30,7 +28,6 @@ export const getToken = () => authState().token;
 // Set authentication state
 export const setAuthenticated = (user: User, token: string) => {
   try {
-    // Save to localStorage for persistence
     localStorage.setItem('auth_token', token);
     localStorage.setItem('user_data', JSON.stringify(user));
     

@@ -1,5 +1,5 @@
 import { createSignal, createEffect, onMount, onCleanup } from "solid-js";
-import { Box, Heading, Tabs, TabList, Tab, TabPanel } from "@hope-ui/solid";
+import { Box, Heading } from "@hope-ui/solid";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import * as am5percent from "@amcharts/amcharts5/percent";
@@ -17,8 +17,6 @@ interface PostChartProps {
 }
 
 const PostChart = (props: PostChartProps) => {
-  const [selectedTab, setSelectedTab] = createSignal("bar");
-  
   let barChartDiv!: HTMLDivElement;
   let pieChartDiv!: HTMLDivElement;
   let barChartRoot: am5.Root | null = null;
@@ -156,15 +154,23 @@ const PostChart = (props: PostChartProps) => {
       series.labels.template.setAll({
         textType: "circular",
         centerX: 0,
-        centerY: 0
+        centerY: 0,
+        fontSize: "12px"
+      });
+
+      series.slices.template.setAll({
+        tooltipText: "{name}: {postCount} posts ({valuePercentTotal.formatNumber('#.0')}%)"
       });
 
       // Use top 8 users for pie chart to avoid clutter
-      const data = props.data.slice(0, 8).map(user => ({
-        name: user.username,
-        postCount: user.postCount,
-        fullName: user.name
-      }));
+      const data = props.data
+        .sort((a, b) => b.postCount - a.postCount)
+        .slice(0, 8)
+        .map(user => ({
+          name: user.username,
+          postCount: user.postCount,
+          fullName: user.name
+        }));
 
       series.data.setAll(data);
 
@@ -173,56 +179,36 @@ const PostChart = (props: PostChartProps) => {
         x: am5.percent(50),
         marginTop: 15,
         marginBottom: 15,
+        layout: pieChartRoot.horizontalLayout
       }));
 
       legend.data.setAll(series.dataItems);
+      
+      // Make sure the chart appears
       series.appear(1000, 100);
+      pieChart.appear(1000, 100);
     } catch (error) {
       console.error("Error creating pie chart:", error);
       disposePieChart();
     }
   };
 
+  // Create both charts when data changes
   createEffect(() => {
     if (props.data.length > 0) {
-      const currentTab = selectedTab();
-      
       setTimeout(() => {
-        if (currentTab === "bar") {
-          createBarChart();
-        } else if (currentTab === "pie") {
-          createPieChart();
-        }
-      }, 50);
-    }
-  });
-
-  // Handle tab switching
-  createEffect(() => {
-    const currentTab = selectedTab();
-    
-    if (props.data.length > 0) {
-      setTimeout(() => {
-        if (currentTab === "bar") {
-          disposePieChart();
-          createBarChart();
-        } else if (currentTab === "pie") {
-          disposeBarChart();
-          createPieChart();
-        }
-      }, 50);
+        createBarChart();
+        createPieChart();
+      }, 100);
     }
   });
 
   onMount(() => {
     if (props.data.length > 0) {
       setTimeout(() => {
-        if (selectedTab() === "bar") {
-          createBarChart();
-        } else {
-          createPieChart();
-        }
-      }, 100);
+        createBarChart();
+        createPieChart();
+      }, 150);
     }
   });
 
@@ -244,18 +230,18 @@ const PostChart = (props: PostChartProps) => {
         <Heading size="lg">Posts Analytics</Heading>
       </Box>
 
-      <Tabs 
-        value={selectedTab()} 
-        onChange={(val: string) => {
-          setSelectedTab(val as "bar" | "pie");
-        }}
+      {/* Flex container for side-by-side charts */}
+      <Box 
+        display="flex" 
+        flexDirection={{ "@initial": "column", "@md": "row" }}
+        gap="$4"
+        w="100%"
       >
-        <TabList>
-          <Tab value="bar">Bar Chart</Tab>
-          <Tab value="pie">Pie Chart</Tab>
-        </TabList>
-
-        <TabPanel value="bar">
+        {/* Bar Chart Section */}
+        <Box flex="1" minW="0">
+          <Box mb="$2">
+            <Heading size="md" color="$neutral11">Bar Chart</Heading>
+          </Box>
           <Box
             ref={(el: HTMLDivElement) => (barChartDiv = el)}
             h="400px"
@@ -263,11 +249,16 @@ const PostChart = (props: PostChartProps) => {
             bg="white"
             borderRadius="$md"
             shadow="$sm"
+            border="1px solid $neutral6"
             style={{ "min-height": "400px" }}
           />
-        </TabPanel>
+        </Box>
 
-        <TabPanel value="pie">
+        {/* Pie Chart Section */}
+        <Box flex="1" minW="0">
+          <Box mb="$2">
+            <Heading size="md" color="$neutral11">Pie Chart (Top 8)</Heading>
+          </Box>
           <Box
             ref={(el: HTMLDivElement) => (pieChartDiv = el)}
             h="400px"
@@ -275,10 +266,11 @@ const PostChart = (props: PostChartProps) => {
             bg="white"
             borderRadius="$md"
             shadow="$sm"
+            border="1px solid $neutral6"
             style={{ "min-height": "400px" }}
           />
-        </TabPanel>
-      </Tabs>
+        </Box>
+      </Box>
     </Box>
   );
 };
