@@ -1,4 +1,3 @@
-import { createSignal } from 'solid-js';
 import '../styles/index.css';
 import RegisterForm from '../components/RegisterForm';
 

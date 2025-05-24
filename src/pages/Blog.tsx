@@ -1,4 +1,4 @@
-import { createSignal, createResource, onMount } from "solid-js";
+import { createSignal, createResource } from "solid-js";
 import { For, Show, Suspense } from "solid-js";
 import { 
   Box, 

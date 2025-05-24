@@ -1,4 +1,4 @@
-import { createSignal, createEffect, onMount, onCleanup } from "solid-js";
+import { createEffect, onMount, onCleanup } from "solid-js";
 import { Box, Heading } from "@hope-ui/solid";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";

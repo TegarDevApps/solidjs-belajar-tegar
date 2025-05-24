@@ -1,4 +1,4 @@
-import { createSignal, Show } from 'solid-js';
+import { createSignal } from 'solid-js';
 
 const RegisterForm = () => {
   const [username, setUsername] = createSignal('');
