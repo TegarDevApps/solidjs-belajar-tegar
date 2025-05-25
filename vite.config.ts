@@ -7,4 +7,10 @@ export default defineConfig({
     tailwindcss(),
     solidPlugin(),
   ],
+  optimizeDeps: {
+    include: ["ag-grid-community", "ag-grid-solid"]
+  },
+  build: {
+    target: "esnext"
+  }
 })

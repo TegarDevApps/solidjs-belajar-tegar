@@ -19,11 +19,9 @@ const ProtectedRoute: Component<ProtectedRouteProps> = (props) => {
   };
 
   onMount(() => {
-    // Initial check
     checkAuthState();
     
-    // Set up periodic check (optional - for auto-logout on token expiry)
-    const interval = setInterval(checkAuthState, 5000); // Check every 5 seconds
+    const interval = setInterval(checkAuthState, 5000);
     
     onCleanup(() => {
       clearInterval(interval);
