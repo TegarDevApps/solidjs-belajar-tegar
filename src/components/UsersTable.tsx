@@ -51,9 +51,58 @@ const UsersTable = () => {
   };
 
   const testData = [
-    { id: 1, name: "John Doe", username: "johndoe", email: "john@example.com", phone: "123-456", website: "example.com", address: { city: "City A" }, company: { name: "Company A" } },
-    { id: 2, name: "Jane Smith", username: "janesmith", email: "jane@example.com", phone: "789-012", website: "janesmith.com", address: { city: "City B" }, company: { name: "Company B" } },
-  ];
+  { 
+    id: 1, 
+    name: "Tegar", 
+    username: "tegar123", 
+    email: "tegar@example.com", 
+    phone: "0812-3456-7890", 
+    website: "tegar.dev", 
+    address: { city: "Jakarta" }, 
+    company: { name: "Tegar Corp" } 
+  },
+  { 
+    id: 2, 
+    name: "Taka", 
+    username: "taka_kun", 
+    email: "taka@example.com", 
+    phone: "0813-9876-5432", 
+    website: "taka.co.id", 
+    address: { city: "Bandung" }, 
+    company: { name: "Taka Solutions" } 
+  },
+  { 
+    id: 3, 
+    name: "Adhim", 
+    username: "adhim01", 
+    email: "adhim@example.com", 
+    phone: "0821-1234-5678", 
+    website: "adhim.dev", 
+    address: { city: "Surabaya" }, 
+    company: { name: "Adhim Tech" } 
+  },
+  { 
+    id: 4, 
+    name: "Nuha", 
+    username: "nuha_n", 
+    email: "nuha@example.com", 
+    phone: "0857-6543-2109", 
+    website: "nuha.org", 
+    address: { city: "Yogyakarta" }, 
+    company: { name: "Nuha Global" } 
+  },
+  { 
+    id: 5, 
+    name: "Fawaz", 
+    username: "fawazzz", 
+    email: "fawaz@example.com", 
+    phone: "0878-9999-1111", 
+    website: "fawaz.io", 
+    address: { city: "Medan" }, 
+    company: { name: "Fawaz Group" } 
+  },
+];
+
 
   const [users] = createResource(fetchUsers);
 
